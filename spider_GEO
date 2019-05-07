@@ -1,0 +1,187 @@
+import requests
+from lxml import etree
+import re
+import string
+
+##浏览器基本信息配置
+user_agent="Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/74.0.3729.131 Safari/537.36"
+head_made={'User-Agent':user_agent}
+
+
+
+##等待用户输入查询关键字
+key_disease=input('please enter the key words of disease: ')
+url_GDS="https://www.ncbi.nlm.nih.gov/gds"
+data_made={'term':key_disease,                                              ##搜索GPL条目
+	'EntrezSystem2.PEntrez.Gds.Entrez_PageController.PreviousPageName':'results',
+	'EntrezSystem2.PEntrez.Gds.Gds_Facets.FacetsUrlFrag':'filters=;platformsGds',   ##platform
+	'EntrezSystem2.PEntrez.Gds.Gds_Facets.FacetSubmitted':'true',
+	'EntrezSystem2.PEntrez.Gds.Gds_Facets.BMFacets':'',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.sPresentation':'docsum',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.sPageSize':'20',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.sSort':'NSAMD',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.FFormat':'docsum',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.FSort':'NSAMD',
+	'coll_start':'1',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.FileFormat':'docsum',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.LastPresentation':'docsum',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.Presentation':'docsum',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.PageSize':'20',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.LastPageSize':'20',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.Sort':'NSAMD',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.LastSort':'NSAMD',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.FileSort':'NSAMD',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.Format':'', 
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.LastFormat':'', 
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.PrevPageSize':'20',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.PrevPresentation':'docsum',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.PrevSort':'NSAMD',
+	'CollectionStartIndex':'1',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_ResultsController.ResultCount':'18391',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_ResultsController.RunLastQuery':'',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Entrez_Pager.cPage':'1',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Entrez_Pager.CurrPage':'1',            ##当前页
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Entrez_Pager.cPage':'1',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.sPresentation2':'docsum',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.sPageSize2':'20',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.sSort2':'NSAMD',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.FFormat2':'docsum',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.FSort2':'NSAMD',
+	'coll_start2':'1',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Entrez_Filters.CurrFilter':'all',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Entrez_Filters.LastFilter':'all',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_MultiItemSupl.Taxport.TxView':'list',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_MultiItemSupl.Taxport.TxListSize':'5',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_MultiItemSupl.RelatedDataLinks.rdDatabase':'rddbto',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_MultiItemSupl.RelatedDataLinks.DbName':'gds',
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Discovery_SearchDetails.SearchDetailsTerm':'renal[All Fields]',##搜索条目
+	'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.HistoryDisplay.Cmd':'search',
+	'EntrezSystem2.PEntrez.DbConnector.Db':'gds',
+	'EntrezSystem2.PEntrez.DbConnector.LastDb':'gds',
+	'EntrezSystem2.PEntrez.DbConnector.Term':key_disease,                   ##搜索条目
+	'EntrezSystem2.PEntrez.DbConnector.LastTabCmd':'',
+	'EntrezSystem2.PEntrez.DbConnector.LastQueryKey':'1',
+	'EntrezSystem2.PEntrez.DbConnector.IdsFromResult':'',
+	'EntrezSystem2.PEntrez.DbConnector.LastIdsFromResult':'', 
+	'EntrezSystem2.PEntrez.DbConnector.LinkName':'',
+	'EntrezSystem2.PEntrez.DbConnector.LinkReadableName':'', 
+	'EntrezSystem2.PEntrez.DbConnector.LinkSrcDb':'',
+	'EntrezSystem2.PEntrez.DbConnector.Cmd':'search',
+	'EntrezSystem2.PEntrez.DbConnector.TabCmd':'',
+	'EntrezSystem2.PEntrez.DbConnector.QueryKey':'',
+	'p$a':'',
+	'p$l':'EntrezSystem2',
+	'p$st':'gds'
+	}
+res=requests.session()
+res_GDS=res.post(url_GDS,headers=head_made,data=data_made)
+print(res_GDS)
+
+def get_total_page_items(response):
+	final_page_of=etree.HTML(response.text.encode('utf-8')).xpath('//*[@id="maincontent"]/div/div[7]/div/h3/text()')[0]
+	final_page=re.search('\d+',final_page_of)[0]
+	total_items_GPL=etree.HTML(response.text.encode('utf-8')).xpath('//*[@id="_entryTypeGds"]/li/ul/li[4]/span/text()')[0]
+	total_items_GSE=etree.HTML(response.text.encode('utf-8')).xpath('//*[@id="_entryTypeGds"]/li/ul/li[2]/span/text()')[0]
+	total_items_GSM=etree.HTML(response.text.encode('utf-8')).xpath('//*[@id="_entryTypeGds"]/li/ul/li[3]/span/text()')[0]
+	##输出测试结果
+	print('get the gage'+final_page
+		+'get the GPL'+total_items_GPL
+		+'get the GSE'+total_items_GSE
+		+'get the GSM'+total_items_GSM)
+	return final_page,total_items_GPL,total_items_GSE,total_items_GSM
+
+##得到搜索总页数及各个参数
+totalitems_page=get_total_page_items(res_GDS)[0]
+totalitems_GPL=get_total_page_items(res_GDS)[1]
+
+##建立循环，POST方法传递信息，建立数据库，爬取所有条目，获得信息包括，标题，URL，选出人类相关数据库
+
+##建立循环，正则表达式提取页面题目及编码
+def get_item(dict,response):
+	pattern_item=re.compile('<div class="rsltcont">(.*?)</a></p>')
+	item=pattern_item.match(response)
+	pattern_item_title=re.compile('(?<=<a.*>).*(?=</a>)')
+	pattern_item_code=re.compile('[A-Z][A-Z][A-Z]\d+')
+	for i in range(0,item.count):
+		item_title=pattern_item_title.match(item[i])
+		item_code=pattern_item_code.match(item[i])
+		dict[item_code]=item_title
+		print(dict.key+":"+dict.values)
+	return dict
+	
+for page in range(1,int(totalitems_page)+1):
+	data_made_send={'term':key_disease,                                              ##搜索条目
+		'EntrezSystem2.PEntrez.Gds.Entrez_PageController.PreviousPageName':'results',
+		'EntrezSystem2.PEntrez.Gds.Gds_Facets.FacetsUrlFrag':'filters=;platformsGds',   ##platform
+		'EntrezSystem2.PEntrez.Gds.Gds_Facets.FacetSubmitted':'true',
+		'EntrezSystem2.PEntrez.Gds.Gds_Facets.BMFacets':'',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.sPresentation':'docsum',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.sPageSize':'20',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.sSort':'NSAMD',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.FFormat':'docsum',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.FSort':'NSAMD',
+		'coll_start':'1',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.FileFormat':'docsum',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.LastPresentation':'docsum',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.Presentation':'docsum',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.PageSize':'20',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.LastPageSize':'20',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.Sort':'NSAMD',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.LastSort':'NSAMD',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.FileSort':'NSAMD',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.Format':'', 
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.LastFormat':'', 
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.PrevPageSize':'20',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.PrevPresentation':'docsum',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.PrevSort':'NSAMD',
+		'CollectionStartIndex':'1',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_ResultsController.ResultCount':'18391',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_ResultsController.RunLastQuery':'',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Entrez_Pager.cPage':'1',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Entrez_Pager.CurrPage':page,            ##当前页
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Entrez_Pager.cPage':'1',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.sPresentation2':'docsum',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.sPageSize2':'20',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.sSort2':'NSAMD',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.FFormat2':'docsum',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_DisplayBar.FSort2':'NSAMD',
+		'coll_start2':'1',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Entrez_Filters.CurrFilter':'all',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Entrez_Filters.LastFilter':'all',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_MultiItemSupl.Taxport.TxView':'list',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_MultiItemSupl.Taxport.TxListSize':'5',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_MultiItemSupl.RelatedDataLinks.rdDatabase':'rddbto',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Gds_MultiItemSupl.RelatedDataLinks.DbName':'gds',
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.Discovery_SearchDetails.SearchDetailsTerm':'renal[All Fields]',##搜索条目
+		'EntrezSystem2.PEntrez.Gds.Gds_ResultsPanel.HistoryDisplay.Cmd':'search',
+		'EntrezSystem2.PEntrez.DbConnector.Db':'gds',
+		'EntrezSystem2.PEntrez.DbConnector.LastDb':'gds',
+		'EntrezSystem2.PEntrez.DbConnector.Term':key_disease,                   ##搜索条目
+		'EntrezSystem2.PEntrez.DbConnector.LastTabCmd':'',
+		'EntrezSystem2.PEntrez.DbConnector.LastQueryKey':'1',
+		'EntrezSystem2.PEntrez.DbConnector.IdsFromResult':'',
+		'EntrezSystem2.PEntrez.DbConnector.LastIdsFromResult':'', 
+		'EntrezSystem2.PEntrez.DbConnector.LinkName':'',
+		'EntrezSystem2.PEntrez.DbConnector.LinkReadableName':'', 
+		'EntrezSystem2.PEntrez.DbConnector.LinkSrcDb':'',
+		'EntrezSystem2.PEntrez.DbConnector.Cmd':'search',
+		'EntrezSystem2.PEntrez.DbConnector.TabCmd':'',
+		'EntrezSystem2.PEntrez.DbConnector.QueryKey':'',
+		'p$a':'',
+		'p$l':'EntrezSystem2',
+		'p$st':'gds'
+		}
+	back_page=res.post(url_GDS,data=data_made_send)
+	###############提取每一页的有效BPL的URL，筛选人类的，且样本大于1000，显示并等待输入
+	pring(back_page)
+	dict['key']=0
+	dict_GPL=get_item(dict_GPL,back_page.text.encode('utf-8'))
+	if totalitems_GPL>20:
+		for i in range(1,21):
+			print(i)
+		else:
+			for i in range(1,totalitems_GPL%20):
+				print(i)
+	print(page)
+#return
+
